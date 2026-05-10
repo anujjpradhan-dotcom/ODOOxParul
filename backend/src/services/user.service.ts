@@ -111,7 +111,7 @@ export const getDashboardData = async (userId: string) => {
     }),
     prisma.expense.aggregate({
       where: { 
-        trip: { userId },
+        tripStop: { trip: { userId } },
         createdAt: { gte: startOfYear }
       },
       _sum: { amount: true },

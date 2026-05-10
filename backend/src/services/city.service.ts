@@ -31,10 +31,7 @@ export const searchCities = async (filters: any) => {
   }
 
   if (filters.region) where.region = filters.region;
-  if (filters.costLevel) {
-    // Reverse mapping if needed, or just skip if complex
-  }
-
+  
   const page = Number(filters.page) || 1;
   const limit = Number(filters.limit) || 10;
   const skip = (page - 1) * limit;
@@ -70,10 +67,22 @@ export const getCityById = async (id: string) => {
   return formatCity(city);
 };
 
+// Alias for controller compatibility
+export const getCityDetails = getCityById;
+
 export const getTrendingCities = async (limit: number = 4) => {
   const cities = await prisma.city.findMany({
     take: limit,
     orderBy: { popularityScore: 'desc' },
   });
   return cities.map(formatCity);
+};
+
+// Alias for controller compatibility
+export const getPopularCities = getTrendingCities;
+
+export const getRecommendedCities = async (userId: string) => {
+  // Placeholder for recommendation logic
+  // For now, return trending cities
+  return getTrendingCities(6);
 };
