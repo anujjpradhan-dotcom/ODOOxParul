@@ -16,11 +16,12 @@ export interface Trip {
   startDate: string;
   endDate: string;
   coverImageUrl?: string;
-  budgetLimit?: number;
+  totalBudget?: number;
   status: "DRAFT" | "PLANNED" | "ONGOING" | "COMPLETED" | "CANCELLED";
   isPublic: boolean;
   shareSlug: string;
   stopsCount: number;
+  user?: Partial<User>;
   createdAt: string;
   updatedAt: string;
 }

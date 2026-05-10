@@ -3,26 +3,29 @@
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-const CATEGORY_DATA = [
-  { name: "Transport", value: 450, color: "#3B82F6" },
-  { name: "Accommodation", value: 800, color: "#8B5CF6" },
-  { name: "Food", value: 300, color: "#F59E0B" },
-  { name: "Activities", value: 250, color: "#10B981" },
-  { name: "Shopping", value: 150, color: "#EC4899" },
-  { name: "Misc", value: 100, color: "#6B7280" },
-];
+interface BudgetChartsProps {
+  breakdown?: Record<string, { estimated: number; actual: number }>;
+}
 
-const DAILY_DATA = [
-  { day: "Day 1", cost: 120, limit: 150 },
-  { day: "Day 2", cost: 180, limit: 150 },
-  { day: "Day 3", cost: 90, limit: 150 },
-  { day: "Day 4", cost: 210, limit: 150 },
-  { day: "Day 5", cost: 130, limit: 150 },
-  { day: "Day 6", cost: 160, limit: 150 },
-  { day: "Day 7", cost: 110, limit: 150 },
-];
+const CATEGORY_COLORS: Record<string, string> = {
+  TRANSPORT: "#3B82F6",
+  ACCOMMODATION: "#8B5CF6",
+  FOOD: "#F59E0B",
+  ACTIVITY: "#10B981",
+  SHOPPING: "#EC4899",
+  MISCELLANEOUS: "#6B7280",
+};
 
-export function BudgetCharts() {
+export function BudgetCharts({ breakdown = {} }: BudgetChartsProps) {
+  const pieData = Object.entries(breakdown).map(([key, val]) => ({
+    name: key.charAt(0) + key.slice(1).toLowerCase(),
+    value: val.actual,
+    color: CATEGORY_COLORS[key] || "#6B7280",
+  })).filter(item => item.value > 0);
+
+  // If no data, show empty state or placeholder
+  const displayPieData = pieData.length > 0 ? pieData : [{ name: "No Data", value: 1, color: "#E5E7EB" }];
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-slide-up" style={{ animationDelay: "100ms" }}>
       <Card className="border-none shadow-sm glass">
@@ -33,7 +36,7 @@ export function BudgetCharts() {
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
-                data={CATEGORY_DATA}
+                data={displayPieData}
                 cx="50%"
                 cy="50%"
                 innerRadius={60}
@@ -41,7 +44,7 @@ export function BudgetCharts() {
                 paddingAngle={5}
                 dataKey="value"
               >
-                {CATEGORY_DATA.map((entry, index) => (
+                {displayPieData.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={entry.color} />
                 ))}
               </Pie>
@@ -56,23 +59,23 @@ export function BudgetCharts() {
 
       <Card className="border-none shadow-sm glass">
         <CardHeader>
-          <CardTitle className="font-display font-bold">Daily Spending</CardTitle>
+          <CardTitle className="font-display font-bold">Category Comparison</CardTitle>
         </CardHeader>
         <CardContent className="h-80">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={DAILY_DATA}>
-              <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 12 }} />
+            <BarChart data={pieData}>
+              <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12 }} />
               <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12 }} />
               <Tooltip 
                 cursor={{ fill: 'rgba(0,0,0,0.05)' }}
                 contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
               />
               <Bar 
-                dataKey="cost" 
+                dataKey="value" 
                 radius={[10, 10, 0, 0]}
               >
-                {DAILY_DATA.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.cost > entry.limit ? "#EF4444" : "#F59E0B"} />
+                {pieData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={entry.color} />
                 ))}
               </Bar>
             </BarChart>

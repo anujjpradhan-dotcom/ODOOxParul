@@ -39,8 +39,18 @@ export function LoginForm() {
     },
   });
 
-  const onSubmit = (data: LoginFormValues) => {
-    login(data);
+  const onSubmit = async (values: LoginFormValues) => {
+    try {
+      const payload = {
+        email: values.email.toLowerCase().trim(),
+        password: values.password,
+      };
+      
+      console.log("Login payload:", payload);
+      await login(payload);
+    } catch (error) {
+      // Error handled in hook/api layer
+    }
   };
 
   return (

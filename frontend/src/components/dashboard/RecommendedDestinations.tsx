@@ -10,7 +10,7 @@ interface RecommendedDestinationsProps {
 }
 
 export function RecommendedDestinations({ cities, isLoading }: RecommendedDestinationsProps) {
-  if (isLoading && cities.length === 0) {
+  if (isLoading && (!cities || cities.length === 0)) {
     return (
       <div className="space-y-4">
         <div className="flex items-center justify-between">
@@ -35,11 +35,17 @@ export function RecommendedDestinations({ cities, isLoading }: RecommendedDestin
         </Link>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-        {cities.map((city) => (
-          <CityCard key={city.id} city={city} />
-        ))}
-      </div>
+      {(cities && cities.length > 0) ? (
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          {cities.map((city) => (
+            <CityCard key={city.id} city={city} />
+          ))}
+        </div>
+      ) : (
+        <div className="border-2 border-dashed rounded-3xl p-12 text-center text-muted-foreground bg-white/50">
+          No destinations available at the moment.
+        </div>
+      )}
     </div>
   );
 }

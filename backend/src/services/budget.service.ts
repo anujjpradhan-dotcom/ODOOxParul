@@ -25,13 +25,13 @@ export const getTripBudgetSummary = async (userId: string, tripId: string) => {
   const budgetLimit = trip.totalBudget || null;
   const isOverBudget = budgetLimit ? totalActual > budgetLimit : false;
 
-  const breakdown = {
-    transport: { estimated: 0, actual: allExpenses.filter(e => e.category === ExpenseCategory.TRANSPORT).reduce((s, e) => s + e.amount, 0) },
-    accommodation: { estimated: 0, actual: allExpenses.filter(e => e.category === ExpenseCategory.ACCOMMODATION).reduce((s, e) => s + e.amount, 0) },
-    food: { estimated: 0, actual: allExpenses.filter(e => e.category === ExpenseCategory.FOOD).reduce((s, e) => s + e.amount, 0) },
-    activities: { estimated: 0, actual: allExpenses.filter(e => e.category === ExpenseCategory.ACTIVITY).reduce((s, e) => s + e.amount, 0) },
-    shopping: { estimated: 0, actual: allExpenses.filter(e => e.category === ExpenseCategory.SHOPPING).reduce((s, e) => s + e.amount, 0) },
-    miscellaneous: { estimated: 0, actual: allExpenses.filter(e => e.category === ExpenseCategory.MISCELLANEOUS).reduce((s, e) => s + e.amount, 0) },
+  const breakdown: Record<string, { estimated: number; actual: number }> = {
+    [ExpenseCategory.TRANSPORT]: { estimated: 0, actual: allExpenses.filter(e => e.category === ExpenseCategory.TRANSPORT).reduce((s, e) => s + e.amount, 0) },
+    [ExpenseCategory.ACCOMMODATION]: { estimated: 0, actual: allExpenses.filter(e => e.category === ExpenseCategory.ACCOMMODATION).reduce((s, e) => s + e.amount, 0) },
+    [ExpenseCategory.FOOD]: { estimated: 0, actual: allExpenses.filter(e => e.category === ExpenseCategory.FOOD).reduce((s, e) => s + e.amount, 0) },
+    [ExpenseCategory.ACTIVITY]: { estimated: 0, actual: allExpenses.filter(e => e.category === ExpenseCategory.ACTIVITY).reduce((s, e) => s + e.amount, 0) },
+    [ExpenseCategory.SHOPPING]: { estimated: 0, actual: allExpenses.filter(e => e.category === ExpenseCategory.SHOPPING).reduce((s, e) => s + e.amount, 0) },
+    [ExpenseCategory.MISCELLANEOUS]: { estimated: 0, actual: allExpenses.filter(e => e.category === ExpenseCategory.MISCELLANEOUS).reduce((s, e) => s + e.amount, 0) },
   };
 
   return {
@@ -40,7 +40,7 @@ export const getTripBudgetSummary = async (userId: string, tripId: string) => {
     budgetLimit,
     isOverBudget,
     breakdown,
-    averageDailyCost: totalActual > 0 ? totalActual / 1 : 0, // Simplified
+    averageDailyCost: totalActual > 0 ? totalActual / Math.max(trip.stops.length, 1) : 0,
   };
 };
 
@@ -64,8 +64,17 @@ export const addExpense = async (userId: string, tripId: string, stopId: string,
 export const updateExpense = async (userId: string, tripId: string, expenseId: string, data: any) => {
   await getTripById(userId, tripId);
 
-  const expense = await prisma.expense.findUnique({ where: { id: expenseId } });
-  if (!expense) throw new AppError('Expense not found', 404);
+  const expense = await prisma.expense.findFirst({ 
+    where: { 
+      id: expenseId,
+      tripStop: {
+        tripId: tripId,
+        trip: { userId }
+      }
+    } 
+  });
+  
+  if (!expense) throw new AppError('Expense not found or access denied', 404);
 
   const updatedExpense = await prisma.expense.update({
     where: { id: expenseId },
@@ -81,6 +90,18 @@ export const updateExpense = async (userId: string, tripId: string, expenseId: s
 export const deleteExpense = async (userId: string, tripId: string, expenseId: string) => {
   await getTripById(userId, tripId);
 
+  const expense = await prisma.expense.findFirst({ 
+    where: { 
+      id: expenseId,
+      tripStop: {
+        tripId: tripId,
+        trip: { userId }
+      }
+    } 
+  });
+  
+  if (!expense) throw new AppError('Expense not found or access denied', 404);
+
   await prisma.expense.delete({ where: { id: expenseId } });
 };
 
@@ -88,7 +109,13 @@ export const getStopExpenses = async (userId: string, tripId: string, stopId: st
   await getTripById(userId, tripId);
   
   return prisma.expense.findMany({
-    where: { tripStopId: stopId },
+    where: { 
+      tripStopId: stopId,
+      tripStop: {
+        tripId: tripId,
+        trip: { userId }
+      }
+    },
     orderBy: { date: 'desc' },
   });
 };

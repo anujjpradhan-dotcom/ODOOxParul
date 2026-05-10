@@ -45,7 +45,7 @@ export function ExpenseList({ expenses }: ExpenseListProps) {
             </tr>
           </thead>
           <tbody className="divide-y divide-stone-100 dark:divide-stone-800">
-            {expenses.length > 0 ? (
+            {(expenses && expenses.length > 0) ? (
               expenses.map((expense) => (
                 <tr key={expense.id} className="hover:bg-muted/20 transition-colors group">
                   <td className="px-6 py-4 text-sm whitespace-nowrap">

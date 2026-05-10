@@ -1,9 +1,9 @@
 import { z } from 'zod';
 
 export const createPackingItemSchema = z.object({
-  name: z.string().min(1, 'Name is required').max(100),
-  category: z.enum(['CLOTHING', 'TOILETRIES', 'ELECTRONICS', 'DOCUMENTS', 'MEDICATION', 'OTHER']),
-  quantity: z.number().min(1).max(99).optional().default(1),
+  name: z.string().min(1, 'Name is required').max(100).trim(),
+  category: z.enum(['CLOTHING', 'DOCUMENTS', 'ELECTRONICS', 'TOILETRIES', 'MEDICATION', 'ACCESSORIES', 'OTHER']),
+  quantity: z.coerce.number().min(1).max(99).optional().default(1),
 });
 
 export const updatePackingItemSchema = createPackingItemSchema.partial().extend({

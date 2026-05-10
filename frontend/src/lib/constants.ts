@@ -25,10 +25,24 @@ export const API_ENDPOINTS = {
     DETAIL: (id: string) => `/trips/${id}`,
     STOPS: (id: string) => `/trips/${id}/stops`,
     ACTIVITIES: (id: string) => `/trips/${id}/activities`,
-    BUDGET: (id: string) => `/trips/${id}/budget`,
-    EXPENSES: (id: string) => `/trips/${id}/expenses`,
-    PACKING: (id: string) => `/trips/${id}/packing`,
-    NOTES: (id: string) => `/trips/${id}/notes`,
+    PUBLIC: (slug: string) => `/public/trips/${slug}`,
+    DUPLICATE: (id: string) => `/trips/${id}/duplicate`,
+  },
+  BUDGET: {
+    SUMMARY: (id: string) => `/trips/${id}/budget`,
+    ADD_EXPENSE: (tripId: string, stopId: string) => `/trips/${tripId}/stops/${stopId}/expenses`,
+    EXPENSE_DETAIL: (tripId: string, expenseId: string) => `/trips/${tripId}/expenses/${expenseId}`,
+  },
+  NOTES: {
+    LIST: (id: string) => `/trips/${id}/notes`,
+    CREATE: (id: string) => `/trips/${id}/notes`,
+    DETAIL: (tripId: string, noteId: string) => `/trips/${tripId}/notes/${noteId}`,
+  },
+  PACKING: {
+    LIST: (id: string) => `/trips/${id}/packing`,
+    ADD: (id: string) => `/trips/${id}/packing`,
+    TOGGLE: (tripId: string, itemId: string) => `/trips/${tripId}/packing/${itemId}/toggle`,
+    DELETE: (tripId: string, itemId: string) => `/trips/${tripId}/packing/${itemId}`,
   },
   CITIES: {
     LIST: "/cities",
@@ -54,19 +68,20 @@ export const TRIP_STATUS = {
 };
 
 export const EXPENSE_CATEGORIES = [
-  "Transport",
-  "Accommodation",
-  "Food",
-  "Activities",
-  "Shopping",
-  "Miscellaneous",
+  "TRANSPORT",
+  "ACCOMMODATION",
+  "FOOD",
+  "ACTIVITY",
+  "SHOPPING",
+  "MISCELLANEOUS",
 ];
 
 export const PACKING_CATEGORIES = [
-  "Clothing",
-  "Documents",
-  "Electronics",
-  "Toiletries",
-  "Medication",
-  "Accessories",
+  "CLOTHING",
+  "DOCUMENTS",
+  "ELECTRONICS",
+  "TOILETRIES",
+  "MEDICATION",
+  "ACCESSORIES",
+  "OTHER",
 ];

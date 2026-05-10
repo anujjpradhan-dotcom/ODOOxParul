@@ -10,7 +10,7 @@ interface UpcomingTripsProps {
 }
 
 export function UpcomingTrips({ trips, isLoading }: UpcomingTripsProps) {
-  if (isLoading && trips.length === 0) {
+  if (isLoading && (!trips || trips.length === 0)) {
     return (
       <div className="space-y-4">
         <div className="flex items-center justify-between">
@@ -35,7 +35,7 @@ export function UpcomingTrips({ trips, isLoading }: UpcomingTripsProps) {
         </Link>
       </div>
 
-      {trips.length > 0 ? (
+      {(trips && trips.length > 0) ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {trips.slice(0, 3).map((trip) => (
             <TripCard key={trip.id} trip={trip} />

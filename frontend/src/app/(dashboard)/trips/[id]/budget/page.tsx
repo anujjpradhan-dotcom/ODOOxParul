@@ -1,35 +1,45 @@
 "use client";
-import React from "react";
-
-import { ChevronLeft, Download } from "lucide-react";
+import React, { useEffect } from "react";
+import { ChevronLeft, Download, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { BudgetOverview } from "@/components/budget/BudgetOverview";
 import { BudgetCharts } from "@/components/budget/BudgetCharts";
 import { ExpenseList } from "@/components/budget/ExpenseList";
-import { Expense } from "@/types";
-
-const MOCK_EXPENSES: Expense[] = [
-  { id: "e1", tripId: "1", category: "Transport", description: "Flight to Tokyo", amount: 850, currency: "USD", date: "2024-05-10" },
-  { id: "e2", tripId: "1", category: "Accommodation", description: "Park Hyatt Tokyo", amount: 1200, currency: "USD", date: "2024-07-15" },
-  { id: "e3", tripId: "1", category: "Food", description: "Sushi Dinner in Ginza", amount: 250, currency: "USD", date: "2024-07-16" },
-  { id: "e4", tripId: "1", category: "Activities", description: "TeamLab Borderless Tickets", amount: 60, currency: "USD", date: "2024-07-17" },
-  { id: "e5", tripId: "1", category: "Shopping", description: "Souvenirs in Akihabara", amount: 120, currency: "USD", date: "2024-07-18" },
-];
+import { useBudget } from "@/hooks/useBudget";
+import { useTrips } from "@/hooks/useTrips";
 
 export default function BudgetPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id: tripId } = React.use(params);
+  const { summary, isLoading, fetchSummary } = useBudget(tripId);
+  const { currentTrip, getTripById } = useTrips();
+
+  useEffect(() => {
+    fetchSummary();
+    getTripById(tripId);
+  }, [fetchSummary, getTripById, tripId]);
+
+  if (isLoading && !summary) {
+    return (
+      <div className="flex flex-col items-center justify-center py-24 space-y-4">
+        <Loader2 className="h-10 w-10 animate-spin text-brand-primary" />
+        <p className="text-muted-foreground animate-pulse">Calculating your expenses...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8 pb-20">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" className="rounded-full" asChild>
-            <Link href={`/trips/${React.use(params).id}/builder`}>
+            <Link href={`/trips/${tripId}/builder`}>
               <ChevronLeft className="h-6 w-6" />
             </Link>
           </Button>
           <div>
             <h1 className="text-2xl md:text-3xl font-bold font-display">Trip Budget</h1>
-            <p className="text-muted-foreground text-sm">Summer in Kyoto</p>
+            <p className="text-muted-foreground text-sm">{currentTrip?.name || "Loading trip..."}</p>
           </div>
         </div>
         
@@ -39,11 +49,18 @@ export default function BudgetPage({ params }: { params: Promise<{ id: string }>
         </Button>
       </div>
 
-      <BudgetOverview limit={5000} spent={2480} />
+      <BudgetOverview 
+        limit={summary?.budgetLimit || currentTrip?.totalBudget || 0} 
+        spent={summary?.totalActual || 0} 
+      />
       
-      <BudgetCharts />
+      <BudgetCharts breakdown={summary?.breakdown || {}} />
 
-      <ExpenseList expenses={MOCK_EXPENSES} />
+      {/* Since the summary doesn't return all individual expenses yet, we'd need a separate call or update summary service */}
+      {/* For now, we'll show empty or handle via summary data if it's updated */}
+      <div className="bg-amber-50 border border-amber-200 p-4 rounded-2xl text-amber-800 text-sm">
+        Individual expense listing is currently integrated at the Stop level in the Itinerary Builder.
+      </div>
     </div>
   );
 }

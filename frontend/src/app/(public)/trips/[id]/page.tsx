@@ -1,75 +1,77 @@
 "use client";
-
-import { Compass, Share2, Copy, Heart, MapPin, Calendar, ArrowRight } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { Compass, Share2, Copy, Heart, MapPin, Calendar, ArrowRight, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ListView } from "@/components/itinerary/ListView";
 import { Trip, TripStop } from "@/types";
-import { formatDateRange, formatCurrency } from "@/lib/utils";
-
-const MOCK_TRIP: Trip = {
-  id: "1",
-  userId: "u1",
-  name: "Summer in Kyoto",
-  startDate: "2024-07-15",
-  endDate: "2024-07-25",
-  stopsCount: 2,
-  status: "PLANNED",
-  isPublic: true,
-  shareSlug: "kyoto-2024",
-  coverImageUrl: "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?q=80&w=1200&auto=format&fit=crop",
-  createdAt: "",
-  updatedAt: "",
-};
-
-const MOCK_STOPS: TripStop[] = [
-  {
-    id: "s1",
-    tripId: "1",
-    cityId: "c2",
-    city: {
-      id: "c2",
-      name: "Tokyo",
-      country: "Japan",
-      region: "Asia",
-      imageUrl: "",
-      costLevel: 3,
-      popularity: 4.8,
-      description: "",
-      latitude: 0,
-      longitude: 0
-    },
-    arrivalDate: "2024-07-15",
-    departureDate: "2024-07-18",
-    order: 0,
-    activities: []
-  },
-  {
-    id: "s2",
-    tripId: "1",
-    cityId: "c5",
-    city: {
-      id: "c5",
-      name: "Kyoto",
-      country: "Japan",
-      region: "Asia",
-      imageUrl: "",
-      costLevel: 3,
-      popularity: 4.9,
-      description: "",
-      latitude: 0,
-      longitude: 0
-    },
-    arrivalDate: "2024-07-18",
-    departureDate: "2024-07-22",
-    order: 1,
-    activities: []
-  }
-];
+import { formatDateRange, cn } from "@/lib/utils";
+import { api } from "@/lib/api";
+import { API_ENDPOINTS } from "@/lib/constants";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 export default function PublicTripPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id: slug } = React.use(params);
+  const [trip, setTrip] = useState<Trip | null>(null);
+  const [stops, setStops] = useState<TripStop[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const router = useRouter();
+
+  useEffect(() => {
+    const fetchTrip = async () => {
+      try {
+        const response = await api.get<any>(API_ENDPOINTS.TRIPS.PUBLIC(slug));
+        setTrip(response.data.trip);
+        setStops(response.data.stops || []);
+      } catch (error: any) {
+        toast.error("Failed to load public trip");
+        console.error(error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchTrip();
+  }, [slug]);
+
+  const handleDuplicate = async () => {
+    if (!trip) return;
+    try {
+      const response = await api.post<Trip>(API_ENDPOINTS.TRIPS.DUPLICATE(trip.id));
+      toast.success("Trip copied to your account!");
+      router.push(`/trips/${response.data.id}/builder`);
+    } catch (error: any) {
+      if (error.status === 401) {
+        toast.info("Please login to copy this trip");
+        router.push("/login");
+      } else {
+        toast.error("Failed to copy trip");
+      }
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center space-y-4">
+        <Loader2 className="h-12 w-12 animate-spin text-brand-primary" />
+        <p className="text-muted-foreground animate-pulse">Loading amazing journey...</p>
+      </div>
+    );
+  }
+
+  if (!trip) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center space-y-6">
+        <h1 className="text-4xl font-bold font-display">Trip Not Found</h1>
+        <Button asChild>
+          <Link href="/">Back to Home</Link>
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-stone-50 dark:bg-stone-950 pb-20">
       {/* Header */}
@@ -86,28 +88,28 @@ export default function PublicTripPage({ params }: { params: Promise<{ id: strin
       {/* Hero Section */}
       <div className="relative h-[60vh] md:h-[70vh] w-full overflow-hidden">
         <img 
-          src={MOCK_TRIP.coverImageUrl} 
-          alt={MOCK_TRIP.name} 
+          src={trip.coverImageUrl || "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?q=80&w=1200&auto=format&fit=crop"} 
+          alt={trip.name} 
           className="w-full h-full object-cover animate-in zoom-in-110 duration-1000"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-stone-950 via-stone-950/40 to-transparent" />
         
         <div className="absolute inset-0 flex items-center justify-center pt-20">
           <div className="container px-6 text-center text-white space-y-6">
-            <Badge className="bg-brand-primary text-white border-none px-6 py-1.5 text-xs font-bold uppercase tracking-[0.2em] rounded-full">
-              Featured Itinerary
+            <Badge className="bg-brand-primary text-white border-none px-6 py-1.5 text-xs font-bold uppercase tracking-[0.2em] rounded-full shadow-lg shadow-brand-primary/20">
+              Shared Itinerary
             </Badge>
             <h1 className="text-5xl md:text-8xl font-bold font-display tracking-tight leading-none drop-shadow-2xl">
-              {MOCK_TRIP.name}
+              {trip.name}
             </h1>
             <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-4 text-lg md:text-xl font-medium text-stone-200">
                <div className="flex items-center gap-2">
                  <Calendar className="h-6 w-6 text-brand-primary" />
-                 <span>{formatDateRange(MOCK_TRIP.startDate, MOCK_TRIP.endDate)}</span>
+                 <span>{formatDateRange(trip.startDate, trip.endDate)}</span>
                </div>
                <div className="flex items-center gap-2">
                  <MapPin className="h-6 w-6 text-brand-primary" />
-                 <span>{MOCK_TRIP.stopsCount} Destinations</span>
+                 <span>{trip.stopsCount || stops.length} Destinations</span>
                </div>
             </div>
           </div>
@@ -121,11 +123,13 @@ export default function PublicTripPage({ params }: { params: Promise<{ id: strin
             <div className="bg-white dark:bg-stone-900 p-8 rounded-[40px] shadow-2xl flex items-center justify-between border">
               <div className="flex items-center gap-4">
                 <Avatar className="h-14 w-14 border-2 border-brand-primary/20">
-                  <AvatarFallback className="bg-brand-primary/10 text-brand-primary font-bold">JD</AvatarFallback>
+                  <AvatarFallback className="bg-brand-primary/10 text-brand-primary font-bold">
+                    {trip.user?.firstName?.[0]}{trip.user?.lastName?.[0]}
+                  </AvatarFallback>
                 </Avatar>
                 <div>
                   <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Created by</p>
-                  <p className="text-xl font-bold font-display">John Doe</p>
+                  <p className="text-xl font-bold font-display">{trip.user?.firstName} {trip.user?.lastName}</p>
                 </div>
               </div>
               <div className="flex gap-2">
@@ -141,7 +145,7 @@ export default function PublicTripPage({ params }: { params: Promise<{ id: strin
             {/* Itinerary */}
             <section className="space-y-8">
                <h2 className="text-4xl font-bold font-display tracking-tight">The Itinerary</h2>
-               <ListView stops={MOCK_STOPS} />
+               <ListView stops={stops} />
             </section>
           </div>
 
@@ -152,7 +156,10 @@ export default function PublicTripPage({ params }: { params: Promise<{ id: strin
                 <p className="text-muted-foreground">Copy this itinerary to your own account and start customizing it for your next adventure.</p>
               </div>
               
-              <Button className="w-full h-16 rounded-3xl bg-brand-primary hover:bg-brand-primary/90 text-xl font-bold gap-3 shadow-lg shadow-brand-primary/20">
+              <Button 
+                onClick={handleDuplicate}
+                className="w-full h-16 rounded-3xl bg-brand-primary hover:bg-brand-primary/90 text-xl font-bold gap-3 shadow-lg shadow-brand-primary/20"
+              >
                 <Copy className="h-6 w-6" />
                 Copy to My Trips
               </Button>
@@ -184,8 +191,4 @@ export default function PublicTripPage({ params }: { params: Promise<{ id: strin
       </div>
     </div>
   );
-}
-
-function cn(...inputs: any[]) {
-  return inputs.filter(Boolean).join(" ");
 }

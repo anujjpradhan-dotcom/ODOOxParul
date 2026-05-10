@@ -79,8 +79,22 @@ export function SignupForm() {
     setPasswordStrength(strength);
   }, [password]);
 
-  const onSubmit = (data: SignupFormValues) => {
-    signup(data);
+  const onSubmit = async (values: SignupFormValues) => {
+    try {
+      const payload = {
+        firstName: values.firstName.trim(),
+        lastName: values.lastName.trim(),
+        email: values.email.toLowerCase().trim(),
+        password: values.password,
+        phone: values.phone?.trim() || undefined,
+        city: values.city?.trim() || undefined,
+      };
+      
+      console.log("Signup payload:", payload);
+      await signup(payload);
+    } catch (error) {
+      // Error handled in hook/api layer
+    }
   };
 
   return (

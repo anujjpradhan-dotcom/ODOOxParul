@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -35,29 +36,48 @@ export function CreateTripForm() {
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors },
   } = useForm<CreateTripFormValues>({
     resolver: zodResolver(createTripSchema),
     defaultValues: {
       name: "",
       description: "",
-      startDate: new Date().toISOString().split("T")[0],
-      endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
       isPublic: false,
     },
   });
 
-  const onSubmit = async (data: CreateTripFormValues) => {
+  useEffect(() => {
+    // Set dates on client only to avoid hydration mismatch
+    const today = new Date().toISOString().split("T")[0];
+    const nextWeek = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+    setValue("startDate", today);
+    setValue("endDate", nextWeek);
+  }, [setValue]);
+
+  const onSubmit = async (values: CreateTripFormValues) => {
     try {
-      const trip = await createTrip(data);
+      // Defensive payload normalization
+      const payload = {
+        name: values.name.trim(),
+        description: values.description?.trim() || undefined,
+        startDate: new Date(values.startDate).toISOString(),
+        endDate: new Date(values.endDate).toISOString(),
+        totalBudget: values.budgetLimit ? Number(values.budgetLimit) : undefined,
+        coverImageUrl: values.coverImageUrl?.trim() || undefined,
+        isPublic: !!values.isPublic,
+      };
+
+      console.log("Trip creation payload:", payload);
+      
+      const trip = await createTrip(payload);
       if (trip?.id) {
         router.push(`/trips/${trip.id}/builder`);
       } else {
-        // Fallback for mock/local development
         router.push(ROUTES.TRIPS);
       }
     } catch (error) {
-      // Error handled in hook
+      console.error("Trip creation error:", error);
     }
   };
 
@@ -111,7 +131,7 @@ export function CreateTripForm() {
                 <CalendarIcon className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input id="endDate" type="date" className="pl-10 h-11" {...register("endDate")} />
               </div>
-              {errors.endDate && <p className="text-sm text-destructive">{errors.endDate.message}</p>}
+              {errors.startDate && <p className="text-sm text-destructive">{errors.startDate.message}</p>}
             </div>
           </div>
 

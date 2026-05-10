@@ -44,7 +44,7 @@ export function StopCard({ stop, index, onDelete, onAddActivity }: StopCardProps
 
             <div className="flex items-center gap-2">
               <Badge variant="outline" className="rounded-full bg-muted/50 border-none">
-                {stop.activities.length} {stop.activities.length === 1 ? "Activity" : "Activities"}
+                {stop.activities?.length || 0} {stop.activities?.length === 1 ? "Activity" : "Activities"}
               </Badge>
               <Button 
                 variant="ghost" 
