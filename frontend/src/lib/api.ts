@@ -52,7 +52,7 @@ async function request<T>(
 
   const response = await fetch(url.toString(), config);
 
-  if (response.status === 401) {
+  if (response.status === 401 && !url.pathname.includes('/auth/login') && !url.pathname.includes('/auth/signup')) {
     if (typeof window !== "undefined") {
       // Use the global store to clear auth state properly
       useAuthStore.getState().logout();
