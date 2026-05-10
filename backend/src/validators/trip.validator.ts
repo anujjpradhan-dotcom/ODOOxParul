@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const createTripSchema = z.object({
+const tripBaseSchema = z.object({
   name: z.string().min(1, 'Trip name is required'),
   description: z.string().optional(),
   startDate: z.string().datetime(),
@@ -8,12 +8,14 @@ export const createTripSchema = z.object({
   coverImageUrl: z.string().url().optional(),
   totalBudget: z.number().positive().optional(),
   isPublic: z.boolean().optional().default(false),
-}).refine((data) => new Date(data.endDate) > new Date(data.startDate), {
+});
+
+export const createTripSchema = tripBaseSchema.refine((data) => new Date(data.endDate) > new Date(data.startDate), {
   message: "End date must be after start date",
   path: ["endDate"],
 });
 
-export const updateTripSchema = createTripSchema.partial().extend({
+export const updateTripSchema = tripBaseSchema.partial().extend({
   status: z.enum(['DRAFT', 'PLANNED', 'ONGOING', 'COMPLETED', 'CANCELLED']).optional(),
 }).refine((data) => {
   if (data.startDate && data.endDate) {

@@ -1,16 +1,18 @@
 import { z } from 'zod';
 
-export const createStopSchema = z.object({
+const stopBaseSchema = z.object({
   cityId: z.string().cuid('Invalid city ID'),
   arrivalDate: z.string().datetime(),
   departureDate: z.string().datetime(),
   notes: z.string().optional(),
-}).refine((data) => new Date(data.departureDate) > new Date(data.arrivalDate), {
+});
+
+export const createStopSchema = stopBaseSchema.refine((data) => new Date(data.departureDate) > new Date(data.arrivalDate), {
   message: "Departure date must be after arrival date",
   path: ["departureDate"],
 });
 
-export const updateStopSchema = createStopSchema.partial().refine((data) => {
+export const updateStopSchema = stopBaseSchema.partial().refine((data) => {
   if (data.arrivalDate && data.departureDate) {
     return new Date(data.departureDate) > new Date(data.arrivalDate);
   }
