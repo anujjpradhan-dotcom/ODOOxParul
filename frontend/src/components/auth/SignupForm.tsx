@@ -1,16 +1,17 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Mail, Lock, User, MapPin, Phone, Loader2, Check } from "lucide-react";
+import { Mail, Lock, User, MapPin, Phone, Loader2, Check, Camera } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/hooks/useAuth";
 import { ROUTES } from "@/lib/constants";
 import { PasswordStrengthIndicator } from "./PasswordStrengthIndicator";
@@ -34,6 +35,16 @@ type SignupFormValues = z.infer<typeof signupSchema>;
 export function SignupForm() {
   const { signup, isLoading } = useAuth();
   const [passwordStrength, setPasswordStrength] = useState(0);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const url = URL.createObjectURL(file);
+      setPhotoPreview(url);
+    }
+  };
 
   const {
     register,
@@ -78,6 +89,27 @@ export function SignupForm() {
         <CardDescription className="text-center">
           Start planning unforgettable trips
         </CardDescription>
+        <div className="flex justify-center pt-4">
+          <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
+            <Avatar className="h-24 w-24 border-4 border-white dark:border-stone-900 shadow-xl">
+              <AvatarImage src={photoPreview || undefined} className="object-cover" />
+              <AvatarFallback className="bg-muted text-muted-foreground flex flex-col items-center justify-center">
+                <User className="h-8 w-8 mb-1" />
+              </AvatarFallback>
+            </Avatar>
+            <div className="absolute inset-0 bg-black/40 text-white rounded-full flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+              <Camera className="h-6 w-6 mb-1" />
+              <span className="text-[10px] font-bold uppercase tracking-wider">Upload</span>
+            </div>
+            <input 
+              type="file" 
+              ref={fileInputRef} 
+              className="hidden" 
+              accept="image/*"
+              onChange={handlePhotoChange}
+            />
+          </div>
+        </div>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">

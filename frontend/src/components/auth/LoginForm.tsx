@@ -45,11 +45,23 @@ export function LoginForm() {
 
   return (
     <Card className="border-none shadow-2xl glass animate-slide-up">
-      <CardHeader className="space-y-1">
-        <CardTitle className="text-3xl font-bold font-display text-center">Welcome Back</CardTitle>
-        <CardDescription className="text-center">
-          Sign in to continue planning your adventures
-        </CardDescription>
+      <CardHeader className="space-y-4">
+        <div className="flex justify-center mb-2">
+          <div className="relative">
+            <div className="absolute -inset-2 bg-brand-primary/20 rounded-full blur-lg" />
+            <img 
+              src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=200&auto=format&fit=crop" 
+              alt="User" 
+              className="h-20 w-20 rounded-full border-4 border-white dark:border-stone-900 shadow-xl object-cover relative z-10"
+            />
+          </div>
+        </div>
+        <div className="space-y-1">
+          <CardTitle className="text-3xl font-bold font-display text-center">Welcome Back</CardTitle>
+          <CardDescription className="text-center">
+            Sign in to continue planning your adventures
+          </CardDescription>
+        </div>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
