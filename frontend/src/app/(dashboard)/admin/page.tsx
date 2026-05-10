@@ -1,27 +1,39 @@
 "use client";
 
-import { Users, Map, Activity, TrendingUp, Search, MoreHorizontal, Download } from "lucide-react";
+import { useEffect } from "react";
+import { Users, Map, Activity, TrendingUp, Search, MoreHorizontal, Download, Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-
-const STATS = [
-  { label: "Total Users", value: "2,543", icon: Users, color: "text-blue-600", bg: "bg-blue-100" },
-  { label: "Total Trips", value: "8,921", icon: Map, color: "text-amber-600", bg: "bg-amber-100" },
-  { label: "Active Users (30d)", value: "1,204", icon: Activity, color: "text-teal-600", bg: "bg-teal-100" },
-  { label: "Avg Trips/User", value: "3.5", icon: TrendingUp, color: "text-purple-600", bg: "bg-purple-100" },
-];
-
-const RECENT_USERS = [
-  { name: "Alice Johnson", email: "alice@example.com", trips: 12, joined: "2 days ago", status: "Active" },
-  { name: "Bob Smith", email: "bob@smith.com", trips: 4, joined: "5 days ago", status: "Active" },
-  { name: "Charlie Brown", email: "charlie@gmail.com", trips: 0, joined: "1 week ago", status: "Pending" },
-  { name: "Diana Prince", email: "diana@themyscira.com", trips: 28, joined: "2 weeks ago", status: "Active" },
-];
+import { useAdmin } from "@/hooks/useAdmin";
+import { cn } from "@/lib/utils";
+import { formatDate } from "@/lib/utils";
 
 export default function AdminPage() {
+  const { stats, metrics, users, isLoading, fetchDashboardData } = useAdmin();
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, [fetchDashboardData]);
+
+  if (isLoading && !stats) {
+    return (
+      <div className="min-h-[60vh] flex flex-col items-center justify-center space-y-4">
+        <Loader2 className="h-12 w-12 animate-spin text-brand-primary" />
+        <p className="text-muted-foreground animate-pulse font-medium">Fetching platform analytics...</p>
+      </div>
+    );
+  }
+
+  const STAT_CARDS = [
+    { label: "Total Users", value: stats?.totalUsers || 0, icon: Users, color: "text-blue-600", bg: "bg-blue-100" },
+    { label: "Total Trips", value: stats?.totalTrips || 0, icon: Map, color: "text-amber-600", bg: "bg-amber-100" },
+    { label: "Active Users", value: stats?.activeUsers || 0, icon: Activity, color: "text-teal-600", bg: "bg-teal-100" },
+    { label: "Avg Trips/User", value: metrics?.avgTripsPerUser.toFixed(1) || "0.0", icon: TrendingUp, color: "text-purple-600", bg: "bg-purple-100" },
+  ];
+
   return (
     <div className="space-y-8 pb-20">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -37,7 +49,7 @@ export default function AdminPage() {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 animate-fade-in">
-        {STATS.map((stat, i) => {
+        {STAT_CARDS.map((stat, i) => {
           const Icon = stat.icon;
           return (
             <Card key={stat.label} className="border-none shadow-sm glass animate-slide-up" style={{ animationDelay: `${i * 100}ms` }}>
@@ -51,7 +63,7 @@ export default function AdminPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-bold font-display">{stat.value}</div>
-                <p className="text-xs text-teal-600 font-bold mt-1">+12% from last month</p>
+                <p className="text-xs text-teal-600 font-bold mt-1">Platform-wide total</p>
               </CardContent>
             </Card>
           );
@@ -75,34 +87,45 @@ export default function AdminPage() {
                   <thead>
                     <tr className="bg-muted/30 text-xs font-bold uppercase tracking-wider text-muted-foreground">
                       <th className="px-8 py-4">User</th>
-                      <th className="px-8 py-4">Trips</th>
+                      <th className="px-8 py-4">Role</th>
                       <th className="px-8 py-4">Joined</th>
                       <th className="px-8 py-4">Status</th>
                       <th className="px-8 py-4 text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-stone-100 dark:divide-stone-800">
-                    {RECENT_USERS.map((user) => (
+                    {users.map((user) => (
                       <tr key={user.email} className="hover:bg-muted/10 transition-colors group">
                         <td className="px-8 py-4">
                           <div className="flex items-center gap-3">
                             <Avatar className="h-9 w-9">
-                              <AvatarFallback className="text-xs font-bold bg-muted">{user.name[0]}</AvatarFallback>
+                              <AvatarFallback className="text-xs font-bold bg-muted">
+                                {user.firstName[0]}{user.lastName[0]}
+                              </AvatarFallback>
                             </Avatar>
                             <div className="flex flex-col">
-                              <span className="font-bold text-sm">{user.name}</span>
+                              <span className="font-bold text-sm">{user.firstName} {user.lastName}</span>
                               <span className="text-xs text-muted-foreground">{user.email}</span>
                             </div>
                           </div>
                         </td>
-                        <td className="px-8 py-4 text-sm font-medium">{user.trips}</td>
-                        <td className="px-8 py-4 text-sm text-muted-foreground">{user.joined}</td>
                         <td className="px-8 py-4">
                           <Badge variant="outline" className={cn(
                             "rounded-full border-none px-3",
-                            user.status === "Active" ? "bg-teal-50 text-teal-600" : "bg-amber-50 text-amber-600"
+                            user.role === "ADMIN" ? "bg-purple-50 text-purple-600" : "bg-blue-50 text-blue-600"
                           )}>
-                            {user.status}
+                            {user.role}
+                          </Badge>
+                        </td>
+                        <td className="px-8 py-4 text-sm text-muted-foreground">
+                          {formatDate(user.createdAt, "MMM d, yyyy")}
+                        </td>
+                        <td className="px-8 py-4">
+                          <Badge variant="outline" className={cn(
+                            "rounded-full border-none px-3",
+                            user.isActive ? "bg-teal-50 text-teal-600" : "bg-stone-50 text-stone-600"
+                          )}>
+                            {user.isActive ? "Active" : "Inactive"}
                           </Badge>
                         </td>
                         <td className="px-8 py-4 text-right">
@@ -129,39 +152,38 @@ export default function AdminPage() {
                 <CardTitle className="font-display font-bold text-xl">Top Cities</CardTitle>
               </CardHeader>
               <CardContent className="px-8 pb-8 space-y-6">
-                {[
-                  { name: "Paris", count: 120, percentage: 85 },
-                  { name: "Tokyo", count: 98, percentage: 70 },
-                  { name: "London", count: 85, percentage: 60 },
-                  { name: "Bali", count: 72, percentage: 50 },
-                ].map((city) => (
-                  <div key={city.name} className="space-y-2">
+                {(stats?.popularCities || []).map((city: any, i: number) => (
+                  <div key={city.id} className="space-y-2">
                     <div className="flex justify-between items-center text-sm">
                       <span className="font-bold">{city.name}</span>
-                      <span className="text-muted-foreground">{city.count} trips</span>
+                      <span className="text-muted-foreground">{city.country}</span>
                     </div>
                     <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
-                      <div className="h-full bg-brand-primary rounded-full" style={{ width: `${city.percentage}%` }} />
+                      <div 
+                        className="h-full bg-brand-primary rounded-full transition-all duration-1000" 
+                        style={{ width: `${Math.max(100 - i * 15, 20)}%` }} 
+                      />
                     </div>
                   </div>
                 ))}
+                {(!stats?.popularCities || stats.popularCities.length === 0) && (
+                  <p className="text-sm text-muted-foreground text-center py-4">No city data available yet.</p>
+                )}
               </CardContent>
            </Card>
 
-           <div className="p-8 bg-brand-primary rounded-[32px] text-white space-y-4">
+           <div className="p-8 bg-stone-900 rounded-[32px] text-white space-y-4">
               <h3 className="text-xl font-bold font-display">System Health</h3>
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-teal-300 animate-pulse" />
+                <div className="w-2 h-2 rounded-full bg-teal-400 animate-pulse" />
                 <span className="text-sm font-medium">All systems operational</span>
               </div>
-              <p className="text-sm opacity-80">Server load is currently low (12%). Backup completed 4 hours ago.</p>
+              <p className="text-sm opacity-60 font-medium">
+                Server load is currently low. Daily backup completed successfully.
+              </p>
            </div>
         </div>
       </div>
     </div>
   );
-}
-
-function cn(...inputs: any[]) {
-  return inputs.filter(Boolean).join(" ");
 }

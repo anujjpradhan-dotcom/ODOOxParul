@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Navbar } from "@/components/layout/Navbar";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { MobileNav } from "@/components/layout/MobileNav";
+import { TripContextSetter } from "@/components/shared/TripContextSetter";
 import { useAuthStore } from "@/stores/auth.store";
 import { ROUTES } from "@/lib/constants";
 
@@ -43,6 +44,7 @@ export default function DashboardLayout({
     <div className="min-h-screen flex flex-col bg-stone-50 dark:bg-stone-950">
       <Navbar />
       <div className="flex flex-1 relative">
+        <TripContextSetter />
         <Sidebar />
         <main className="flex-1 p-4 md:p-8 pb-24 md:pb-8 max-w-7xl mx-auto w-full">
           {children}
