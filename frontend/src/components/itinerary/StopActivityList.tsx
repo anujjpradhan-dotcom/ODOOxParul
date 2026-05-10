@@ -9,8 +9,8 @@ interface StopActivityListProps {
   activities: TripActivity[];
 }
 
-export function StopActivityList({ activities }: StopActivityListProps) {
-  if (activities.length === 0) {
+export function StopActivityList({ activities = [] }: StopActivityListProps) {
+  if (!activities || activities.length === 0) {
     return (
       <div className="py-8 text-center border-2 border-dashed rounded-2xl bg-muted/20">
         <p className="text-sm text-muted-foreground">No activities scheduled yet.</p>

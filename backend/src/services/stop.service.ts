@@ -46,6 +46,9 @@ export const addStop = async (userId: string, tripId: string, data: any) => {
     },
     include: {
       city: true,
+      activities: {
+        include: { activity: true }
+      }
     },
   });
 
@@ -74,6 +77,9 @@ export const updateStop = async (userId: string, tripId: string, stopId: string,
     },
     include: {
       city: true,
+      activities: {
+        include: { activity: true }
+      }
     },
   });
 
