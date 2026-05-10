@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { api } from "@/lib/api";
 import { API_ENDPOINTS } from "@/lib/constants";
 import { Trip, TripStop } from "@/types";
@@ -9,7 +9,7 @@ export function useItinerary() {
   const [trip, setTrip] = useState<Trip | null>(null);
   const [stops, setStops] = useState<TripStop[]>([]);
 
-  const fetchTripDetails = async (tripId: string) => {
+  const fetchTripDetails = useCallback(async (tripId: string) => {
     setIsLoading(true);
     try {
       const response: any = await api.get(API_ENDPOINTS.TRIPS.DETAIL(tripId));
@@ -21,12 +21,12 @@ export function useItinerary() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   const addStop = async (tripId: string, data: any) => {
     try {
       const response: any = await api.post(API_ENDPOINTS.TRIPS.STOPS(tripId), data);
-      setStops(prev => [...prev, response.data].sort((a, b) => a.order - b.order));
+      setStops(prev => [...prev, response.data].sort((a, b) => a.orderIndex - b.orderIndex));
       toast.success("Stop added to itinerary");
       return response.data;
     } catch (error: any) {
@@ -49,7 +49,7 @@ export function useItinerary() {
       const response: any = await api.post(`${API_ENDPOINTS.TRIPS.STOPS(tripId)}/${stopId}/activities`, data);
       setStops(prev => prev.map(s => 
         s.id === stopId 
-          ? { ...s, activities: [...s.activities, response.data].sort((a, b) => a.order - b.order) } 
+          ? { ...s, activities: [...s.activities, response.data].sort((a, b) => a.orderIndex - b.orderIndex) } 
           : s
       ));
       toast.success("Activity added");

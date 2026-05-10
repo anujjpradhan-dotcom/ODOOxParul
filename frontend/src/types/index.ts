@@ -46,7 +46,7 @@ export interface TripStop {
   city: City;
   arrivalDate: string;
   departureDate: string;
-  order: number;
+  orderIndex: number;
   notes?: string;
   activities: TripActivity[];
 }
@@ -70,7 +70,7 @@ export interface TripActivity {
   startTime?: string;
   notes?: string;
   cost: number;
-  order: number;
+  orderIndex: number;
 }
 
 export interface Expense {
