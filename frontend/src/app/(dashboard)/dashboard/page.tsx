@@ -1,43 +1,50 @@
 "use client";
 
-import { useEffect } from "react";
 import { WelcomeSection } from "@/components/dashboard/WelcomeSection";
 import { QuickActions } from "@/components/dashboard/QuickActions";
 import { UpcomingTrips } from "@/components/dashboard/UpcomingTrips";
 import { RecommendedDestinations } from "@/components/dashboard/RecommendedDestinations";
 import { BudgetHighlights } from "@/components/dashboard/BudgetHighlights";
-import { useTrips } from "@/hooks/useTrips";
+import { useDashboard } from "@/hooks/useDashboard";
 import { useCities } from "@/hooks/useCities";
+import { useEffect } from "react";
 
 export default function DashboardPage() {
-  const { trips, fetchTrips, isLoading: isTripsLoading } = useTrips();
+  const { data: dashboardData, isLoading: isDashboardLoading } = useDashboard();
   const { cities, searchCities, isLoading: isCitiesLoading } = useCities();
 
   useEffect(() => {
-    // Fetch upcoming trips (PLANNED status)
-    fetchTrips({ status: "PLANNED", limit: 3 });
-    // Fetch some recommended cities
+    // Fetch some recommended cities if not already loaded
     searchCities("", { limit: 4 });
-  }, [fetchTrips, searchCities]);
+  }, [searchCities]);
 
   return (
-    <div className="space-y-12 pb-12">
+    <div className="space-y-12 pb-12 animate-fade-in">
       <div className="space-y-8">
         <WelcomeSection />
         <QuickActions />
       </div>
 
       <div className="space-y-12">
-        <section>
-          <BudgetHighlights />
+        <section className="animate-slide-up" style={{ animationDelay: "100ms" }}>
+          <BudgetHighlights 
+            stats={dashboardData?.stats} 
+            isLoading={isDashboardLoading} 
+          />
         </section>
 
-        <section>
-          <UpcomingTrips trips={trips} isLoading={isTripsLoading} />
+        <section className="animate-slide-up" style={{ animationDelay: "200ms" }}>
+          <UpcomingTrips 
+            trips={dashboardData?.upcomingTrips || []} 
+            isLoading={isDashboardLoading} 
+          />
         </section>
 
-        <section>
-          <RecommendedDestinations cities={cities} isLoading={isCitiesLoading} />
+        <section className="animate-slide-up" style={{ animationDelay: "300ms" }}>
+          <RecommendedDestinations 
+            cities={cities} 
+            isLoading={isCitiesLoading} 
+          />
         </section>
       </div>
     </div>

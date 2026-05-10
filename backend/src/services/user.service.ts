@@ -96,19 +96,56 @@ export const removeSavedDestination = async (userId: string, cityId: string) => 
 };
 
 export const getDashboardData = async (userId: string) => {
-  const [recentTrips, stats] = await Promise.all([
-    prisma.trip.findMany({
-      where: { userId },
-      take: 5,
-      orderBy: { createdAt: 'desc' },
-    }),
+  const currentYear = new Date().getFullYear();
+  const startOfYear = new Date(currentYear, 0, 1);
+
+  const [totalTrips, upcomingTrips, totalSpent, totalPlannedBudget, completedTrips] = await Promise.all([
     prisma.trip.count({ where: { userId } }),
+    prisma.trip.findMany({
+      where: { userId, status: 'PLANNED' },
+      take: 3,
+      orderBy: { startDate: 'asc' },
+      include: {
+        _count: { select: { stops: true } }
+      }
+    }),
+    prisma.expense.aggregate({
+      where: { 
+        trip: { userId },
+        createdAt: { gte: startOfYear }
+      },
+      _sum: { amount: true },
+    }),
+    prisma.trip.aggregate({
+      where: { userId, status: 'PLANNED' },
+      _sum: { totalBudget: true },
+    }),
+    prisma.trip.findMany({
+      where: { userId, status: 'COMPLETED' },
+      select: { startDate: true, endDate: true }
+    })
   ]);
 
+  // Calculate Avg Daily Cost
+  let totalDays = 0;
+  completedTrips.forEach(t => {
+    const diff = Math.ceil((t.endDate.getTime() - t.startDate.getTime()) / (1000 * 60 * 60 * 24)) || 1;
+    totalDays += diff;
+  });
+
+  const avgDailyCost = totalDays > 0 ? (totalSpent._sum.amount || 0) / totalDays : 0;
+
   return {
-    recentTrips,
     stats: {
-      totalTrips: stats,
+      totalTrips,
+      totalSpentYear: totalSpent._sum.amount || 0,
+      upcomingBudget: totalPlannedBudget._sum.totalBudget || 0,
+      avgDailyCost,
     },
+    upcomingTrips: upcomingTrips.map(t => ({
+      ...t,
+      stopsCount: t._count.stops,
+      _count: undefined
+    })),
   };
 };
