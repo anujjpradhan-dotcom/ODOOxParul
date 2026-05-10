@@ -5,19 +5,22 @@ import { Plus, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StopCard } from "./StopCard";
 import { Timeline } from "./Timeline";
+import { AddStopDialog } from "./AddStopDialog";
 import { Trip, TripStop } from "@/types";
 
 interface ItineraryBuilderProps {
   trip: Trip;
-  initialStops: TripStop[];
+  stops: TripStop[];
+  onAddStop: (tripId: string, data: any) => Promise<any>;
+  onDeleteStop: (id: string) => Promise<any>;
 }
 
-export function ItineraryBuilder({ trip, initialStops }: ItineraryBuilderProps) {
-  const [stops, setStops] = useState<TripStop[]>(initialStops);
+export function ItineraryBuilder({ trip, stops, onAddStop, onDeleteStop }: ItineraryBuilderProps) {
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
 
-  const handleDeleteStop = (id: string) => {
+  const handleDeleteStop = async (id: string) => {
     if (confirm("Remove this stop from your itinerary?")) {
-      setStops(prev => prev.filter(s => s.id !== id));
+      await onDeleteStop(id);
     }
   };
 
@@ -53,7 +56,11 @@ export function ItineraryBuilder({ trip, initialStops }: ItineraryBuilderProps) 
                 Your trip currently has no stops. Add your first destination to begin planning.
               </p>
             </div>
-            <Button size="lg" className="rounded-2xl bg-brand-primary hover:bg-brand-primary/90 px-8">
+            <Button 
+              size="lg" 
+              className="rounded-2xl bg-brand-primary hover:bg-brand-primary/90 px-8"
+              onClick={() => setIsAddDialogOpen(true)}
+            >
               Add First Stop
             </Button>
           </div>
@@ -64,6 +71,7 @@ export function ItineraryBuilder({ trip, initialStops }: ItineraryBuilderProps) 
             variant="outline" 
             size="lg" 
             className="w-full h-16 rounded-3xl border-dashed border-2 hover:border-brand-primary hover:text-brand-primary hover:bg-brand-primary/5 transition-all gap-2"
+            onClick={() => setIsAddDialogOpen(true)}
           >
             <Plus className="h-5 w-5" />
             Add Another Stop
@@ -77,6 +85,13 @@ export function ItineraryBuilder({ trip, initialStops }: ItineraryBuilderProps) 
           </p>
         </div>
       </div>
+
+      <AddStopDialog 
+        isOpen={isAddDialogOpen}
+        onOpenChange={setIsAddDialogOpen}
+        onAddStop={(data) => onAddStop(trip.id, data)}
+        trip={trip}
+      />
     </div>
   );
 }

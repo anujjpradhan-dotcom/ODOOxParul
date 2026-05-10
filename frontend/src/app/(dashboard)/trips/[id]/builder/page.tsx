@@ -10,7 +10,7 @@ import { useItinerary } from "@/hooks/useItinerary";
 
 export default function BuilderPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = React.use(params);
-  const { trip, stops, isLoading, fetchTripDetails } = useItinerary();
+  const { trip, stops, isLoading, fetchTripDetails, addStop, removeStop } = useItinerary();
 
   useEffect(() => {
     if (id) {
@@ -75,7 +75,12 @@ export default function BuilderPage({ params }: { params: Promise<{ id: string }
         </div>
       </div>
 
-      <ItineraryBuilder trip={trip} initialStops={stops} />
+      <ItineraryBuilder 
+        trip={trip} 
+        stops={stops} 
+        onAddStop={addStop} 
+        onDeleteStop={(stopId) => removeStop(trip.id, stopId)} 
+      />
     </div>
   );
 }
