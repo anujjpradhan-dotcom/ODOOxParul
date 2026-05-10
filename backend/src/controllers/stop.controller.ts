@@ -2,6 +2,15 @@ import { Request, Response, NextFunction } from 'express';
 import * as stopService from '../services/stop.service';
 import { successResponse } from '../utils/response';
 
+export const getTripStops = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const result = await stopService.getStopsByTrip(req.user!.id, req.params.id);
+    return successResponse(res, result, 'Trip stops retrieved successfully', 200);
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const addStop = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const result = await stopService.addStop(req.user!.id, req.params.id, req.body);

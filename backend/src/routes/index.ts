@@ -18,11 +18,11 @@ const apiV1 = Router();
 apiV1.use('/auth', authRoutes);
 apiV1.use('/trips/:id/stops/:stopId/activities', tripActivityRouter);
 apiV1.use('/trips/:id/stops/:stopId/expenses', budgetStopExpenseRouter);
+apiV1.use('/trips/:id/stops', stopRoutes); // Mount stops BEFORE budgetTripRouter
 apiV1.use('/trips/:id/expenses/:expenseId', budgetExpenseRouter);
 apiV1.use('/trips/:id/packing', packingRoutes);
 apiV1.use('/trips/:id/notes', notesRoutes);
 apiV1.use('/trips/:id', budgetTripRouter);
-apiV1.use('/trips/:id/stops', stopRoutes);
 apiV1.use('/trips', tripRouter);
 apiV1.use('/public/trips', publicTripRouter);
 apiV1.use('/cities', cityRoutes);

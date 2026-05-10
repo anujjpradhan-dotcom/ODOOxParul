@@ -2,6 +2,22 @@ import { AppError } from '../middleware/error.middleware';
 import prisma from '../lib/prisma';
 import { getTripById } from './trip.service';
 
+export const getStopsByTrip = async (userId: string, tripId: string) => {
+  await getTripById(userId, tripId); // Ownership check
+
+  return prisma.tripStop.findMany({
+    where: { tripId },
+    orderBy: { orderIndex: 'asc' },
+    include: {
+      city: true,
+      activities: {
+        include: { activity: true },
+        orderBy: { orderIndex: 'asc' },
+      },
+    },
+  });
+};
+
 export const addStop = async (userId: string, tripId: string, data: any) => {
   const trip = await getTripById(userId, tripId);
   
