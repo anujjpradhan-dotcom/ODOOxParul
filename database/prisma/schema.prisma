@@ -7,3 +7,54 @@ generator client {
   provider = "prisma-client-js"
 }
 
+// ==========================================
+// User & Authentication Models
+// ==========================================
+
+/// User model representing an app user or admin
+model User {
+  id                 String   @id @default(cuid())
+  email              String   @unique
+  passwordHash       String
+  firstName          String
+  lastName           String
+  avatar             String?
+  languagePreference String   @default("en")
+  isAdmin            Boolean  @default(false)
+  isActive           Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  refreshTokens      RefreshToken[]
+  savedDestinations  SavedDestination[]
+  trips              Trip[]
+  packingItems       PackingItem[]      @relation("UserPackingItems")
+}
+
+/// Refresh token for authentication
+model RefreshToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([userId])
+}
+
+/// Saved destinations (wishlist)
+model SavedDestination {
+  id        String   @id @default(cuid())
+  userId    String
+  cityId    String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  city City @relation(fields: [cityId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, cityId])
+}
+
