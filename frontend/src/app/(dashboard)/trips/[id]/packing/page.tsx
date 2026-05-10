@@ -1,4 +1,5 @@
 "use client";
+import React from "react";
 
 import { useState } from "react";
 import { ChevronLeft, Plus, Check, Trash2, ShoppingBag, Laptop, FileText, Pill, Shirt, PlusCircle } from "lucide-react";
@@ -34,7 +35,7 @@ const CATEGORIES = [
   { name: "Medication", icon: Pill, color: "text-teal-600", bg: "bg-teal-100" },
 ];
 
-export default function PackingPage({ params }: { params: { id: string } }) {
+export default function PackingPage({ params }: { params: Promise<{ id: string }> }) {
   const [items, setItems] = useState<PackingItem[]>(MOCK_ITEMS);
   const [newItemName, setNewItemName] = useState("");
 
@@ -56,7 +57,7 @@ export default function PackingPage({ params }: { params: { id: string } }) {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" className="rounded-full" asChild>
-            <Link href={`/trips/${params.id}/builder`}>
+            <Link href={`/trips/${React.use(params).id}/builder`}>
               <ChevronLeft className="h-6 w-6" />
             </Link>
           </Button>

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Mail, Lock, User, MapPin, Phone, Loader2, Check, Camera } from "lucide-react";
@@ -50,6 +50,7 @@ export function SignupForm() {
     register,
     handleSubmit,
     watch,
+    control,
     formState: { errors },
   } = useForm<SignupFormValues>({
     resolver: zodResolver(signupSchema),
@@ -125,6 +126,7 @@ export function SignupForm() {
             <div className="space-y-2">
               <Label htmlFor="lastName">Last Name</Label>
               <Input id="lastName" placeholder="Doe" {...register("lastName")} />
+              {errors.lastName && <p className="text-sm text-destructive">{errors.lastName.message}</p>}
             </div>
           </div>
 
@@ -170,18 +172,31 @@ export function SignupForm() {
             {errors.confirmPassword && <p className="text-sm text-destructive">{errors.confirmPassword.message}</p>}
           </div>
 
-          <div className="flex items-center space-x-2">
-            <Checkbox id="terms" {...register("terms")} />
-            <Label htmlFor="terms" className="text-xs font-normal leading-tight">
-              I agree to the{" "}
-              <Link href="/terms" className="text-brand-primary hover:underline">
-                Terms of Service
-              </Link>{" "}
-              and{" "}
-              <Link href="/privacy" className="text-brand-primary hover:underline">
-                Privacy Policy
-              </Link>
-            </Label>
+          <div className="space-y-2">
+            <div className="flex items-center space-x-2">
+              <Controller
+                name="terms"
+                control={control}
+                render={({ field }) => (
+                  <Checkbox 
+                    id="terms" 
+                    checked={field.value} 
+                    onCheckedChange={field.onChange} 
+                  />
+                )}
+              />
+              <Label htmlFor="terms" className="text-xs font-normal leading-tight">
+                I agree to the{" "}
+                <Link href="/terms" className="text-brand-primary hover:underline">
+                  Terms of Service
+                </Link>{" "}
+                and{" "}
+                <Link href="/privacy" className="text-brand-primary hover:underline">
+                  Privacy Policy
+                </Link>
+              </Label>
+            </div>
+            {errors.terms && <p className="text-sm text-destructive">{errors.terms.message}</p>}
           </div>
 
           <Button type="submit" className="w-full h-11" disabled={isLoading}>

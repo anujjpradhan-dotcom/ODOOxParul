@@ -1,4 +1,7 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+import { useAuthStore } from "@/stores/auth.store";
+import { ROUTES } from "@/lib/constants";
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
 type HttpMethod = "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
 
@@ -50,11 +53,10 @@ async function request<T>(
   const response = await fetch(url.toString(), config);
 
   if (response.status === 401) {
-    // Attempt token refresh logic could go here
-    // For now, redirect to login if we're in the browser
     if (typeof window !== "undefined") {
-      // localStorage.removeItem('accessToken');
-      // window.location.href = '/login';
+      // Use the global store to clear auth state properly
+      useAuthStore.getState().logout();
+      window.location.href = ROUTES.LOGIN;
     }
   }
 

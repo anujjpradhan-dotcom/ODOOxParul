@@ -9,8 +9,6 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-
 export default function ProfilePage() {
   const { user } = useAuthStore();
   const [activeTab, setActiveTab] = useState("general");
@@ -157,9 +155,7 @@ export default function ProfilePage() {
                     <Input id="confirm-password" type="password" className="h-12 rounded-2xl bg-muted/50 border-none" />
                   </div>
                 </div>
-                
-                <Separator />
-
+                <div className="h-[1px] bg-border my-4" />
                 <div className="space-y-4 pt-4">
                    <h4 className="font-bold text-destructive flex items-center gap-2">
                      <Trash2 className="h-5 w-5" />
@@ -186,9 +182,9 @@ export default function ProfilePage() {
   );
 }
 
-function Separator() {
-  return <div className="h-px bg-stone-100 dark:bg-stone-800 w-full" />;
-}
+
+
+
 
 function cn(...inputs: any[]) {
   return inputs.filter(Boolean).join(" ");

@@ -8,6 +8,7 @@ import { TripCard } from "@/components/shared/TripCard";
 import { TripFilters } from "@/components/trips/TripFilters";
 import { useTrips } from "@/hooks/useTrips";
 import { ROUTES } from "@/lib/constants";
+import { cn } from "@/lib/utils";
 import { Trip } from "@/types";
 
 // Mock data for initial UI

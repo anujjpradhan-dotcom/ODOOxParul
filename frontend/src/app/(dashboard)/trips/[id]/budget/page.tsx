@@ -1,4 +1,5 @@
 "use client";
+import React from "react";
 
 import { ChevronLeft, Download } from "lucide-react";
 import Link from "next/link";
@@ -16,13 +17,13 @@ const MOCK_EXPENSES: Expense[] = [
   { id: "e5", tripId: "1", category: "Shopping", description: "Souvenirs in Akihabara", amount: 120, currency: "USD", date: "2024-07-18" },
 ];
 
-export default function BudgetPage({ params }: { params: { id: string } }) {
+export default function BudgetPage({ params }: { params: Promise<{ id: string }> }) {
   return (
     <div className="space-y-8 pb-20">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" className="rounded-full" asChild>
-            <Link href={`/trips/${params.id}/builder`}>
+            <Link href={`/trips/${React.use(params).id}/builder`}>
               <ChevronLeft className="h-6 w-6" />
             </Link>
           </Button>

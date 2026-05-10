@@ -1,4 +1,5 @@
 "use client";
+import React from "react";
 
 import Link from "next/link";
 import { ChevronLeft, Share2, Eye } from "lucide-react";
@@ -100,7 +101,7 @@ const MOCK_STOPS: TripStop[] = [
   }
 ];
 
-export default function BuilderPage({ params }: { params: { id: string } }) {
+export default function BuilderPage({ params }: { params: Promise<{ id: string }> }) {
   return (
     <div className="space-y-8 pb-12">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -122,7 +123,7 @@ export default function BuilderPage({ params }: { params: { id: string } }) {
             Share
           </Button>
           <Button className="rounded-xl gap-2 h-11 bg-brand-primary hover:bg-brand-primary/90" asChild>
-            <Link href={`/trips/${params.id}/itinerary`}>
+            <Link href={`/trips/${React.use(params).id}/itinerary`}>
               <Eye className="h-4 w-4" />
               View Itinerary
             </Link>

@@ -69,7 +69,7 @@ const MOCK_STOPS: TripStop[] = [
   }
 ];
 
-export default function PublicTripPage({ params }: { params: { id: string } }) {
+export default function PublicTripPage({ params }: { params: Promise<{ id: string }> }) {
   return (
     <div className="min-h-screen bg-stone-50 dark:bg-stone-950 pb-20">
       {/* Header */}

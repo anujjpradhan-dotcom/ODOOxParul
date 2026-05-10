@@ -54,7 +54,7 @@ const MOCK_ACTIVITIES: Activity[] = [
   }
 ];
 
-export default function CityDetailsPage({ params }: { params: { id: string } }) {
+export default function CityDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const [isSaved, setIsSaved] = useState(false);
 
   return (

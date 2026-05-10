@@ -14,11 +14,12 @@ export function useAuth() {
     setIsLoading(true);
     try {
       const response: any = await api.post(API_ENDPOINTS.AUTH.LOGIN, data);
-      setToken(response.accessToken);
-      setUser(response.user);
-      localStorage.setItem("accessToken", response.accessToken);
+      const { accessToken, user: userData } = response.data;
+      setToken(accessToken);
+      setUser(userData);
+      localStorage.setItem("accessToken", accessToken);
       toast.success("Welcome back!");
-      router.push(ROUTES.DASHBOARD);
+      router.push(ROUTES.DASHBOARD || "/");
     } catch (error: any) {
       toast.error(error.message || "Failed to login");
     } finally {
@@ -30,11 +31,12 @@ export function useAuth() {
     setIsLoading(true);
     try {
       const response: any = await api.post(API_ENDPOINTS.AUTH.SIGNUP, data);
-      setToken(response.accessToken);
-      setUser(response.user);
-      localStorage.setItem("accessToken", response.accessToken);
+      const { accessToken, user: userData } = response.data;
+      setToken(accessToken);
+      setUser(userData);
+      localStorage.setItem("accessToken", accessToken);
       toast.success("Account created successfully!");
-      router.push(ROUTES.DASHBOARD);
+      router.push(ROUTES.DASHBOARD || "/");
     } catch (error: any) {
       toast.error(error.message || "Failed to sign up");
     } finally {
