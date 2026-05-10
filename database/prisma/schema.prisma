@@ -205,3 +205,75 @@ model TripActivity {
   @@index([tripStopId, orderIndex])
 }
 
+// ==========================================
+// Budget, Expenses & Packing Models
+// ==========================================
+
+enum ExpenseCategory {
+  TRANSPORT
+  ACCOMMODATION
+  FOOD
+  ACTIVITY
+  SHOPPING
+  MISCELLANEOUS
+}
+
+/// Expense model for tracking trip costs
+model Expense {
+  id          String          @id @default(cuid())
+  tripStopId  String
+  category    ExpenseCategory
+  description String
+  amount      Float           // Application logic must validate amount > 0
+  currency    String          @default("USD")
+  date        DateTime
+  createdAt   DateTime        @default(now())
+
+  tripStop TripStop @relation(fields: [tripStopId], references: [id], onDelete: Cascade)
+
+  @@index([tripStopId, category])
+}
+
+enum PackingCategory {
+  CLOTHING
+  DOCUMENTS
+  ELECTRONICS
+  TOILETRIES
+  MEDICATION
+  ACCESSORIES
+  OTHER
+}
+
+/// Packing item model
+model PackingItem {
+  id        String          @id @default(cuid())
+  tripId    String
+  userId    String?
+  name      String
+  category  PackingCategory
+  isPacked  Boolean         @default(false)
+  quantity  Int             @default(1)
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+
+  trip Trip  @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  user User? @relation("UserPackingItems", fields: [userId], references: [id])
+
+  @@index([tripId, category])
+}
+
+/// TripNote model for general trip notes
+model TripNote {
+  id         String   @id @default(cuid())
+  tripId     String
+  tripStopId String?
+  title      String?
+  content    String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  trip     Trip      @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  tripStop TripStop? @relation(fields: [tripStopId], references: [id], onDelete: Cascade)
+
+  @@index([tripId, createdAt])
+}
