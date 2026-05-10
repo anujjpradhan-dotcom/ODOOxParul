@@ -17,7 +17,7 @@ export const createTrip = async (userId: string, data: any) => {
       startDate: new Date(data.startDate),
       endDate: new Date(data.endDate),
       coverImageUrl: data.coverImageUrl,
-      totalBudget: data.totalBudget,
+      totalBudget: data.totalBudget || data.budgetLimit,
       isPublic: data.isPublic || false,
       userId,
       status: TripStatus.DRAFT,
@@ -25,7 +25,7 @@ export const createTrip = async (userId: string, data: any) => {
     },
   });
 
-  return trip;
+  return { ...trip, stopsCount: 0 };
 };
 
 export const getTrips = async (userId: string, filters: any) => {
@@ -53,16 +53,32 @@ export const getTrips = async (userId: string, filters: any) => {
       skip,
       take: limit,
       orderBy,
+      include: {
+        _count: {
+          select: { stops: true }
+        }
+      }
     }),
     prisma.trip.count({ where }),
   ]);
 
-  return { data: trips, total, page, limit };
+  const formattedTrips = trips.map(trip => ({
+    ...trip,
+    stopsCount: trip._count.stops,
+    _count: undefined
+  }));
+
+  return { data: formattedTrips, total, page, limit };
 };
 
 export const getTripById = async (userId: string, tripId: string) => {
   const trip = await prisma.trip.findUnique({
     where: { id: tripId },
+    include: {
+      _count: {
+        select: { stops: true }
+      }
+    }
   });
 
   if (!trip) throw new AppError('Trip not found', 404);
@@ -71,7 +87,11 @@ export const getTripById = async (userId: string, tripId: string) => {
     throw new AppError('Unauthorized', 403);
   }
   
-  return trip;
+  return {
+    ...trip,
+    stopsCount: trip._count.stops,
+    _count: undefined
+  };
 };
 
 export const updateTrip = async (userId: string, tripId: string, data: any) => {
@@ -84,7 +104,13 @@ export const updateTrip = async (userId: string, tripId: string, data: any) => {
     ...data,
     startDate: data.startDate ? new Date(data.startDate) : undefined,
     endDate: data.endDate ? new Date(data.endDate) : undefined,
+    totalBudget: data.totalBudget !== undefined ? data.totalBudget : (data.budgetLimit !== undefined ? data.budgetLimit : undefined),
   };
+
+  // Remove budgetLimit if it exists to avoid Prisma errors if it's not in the schema
+  if ('budgetLimit' in updateData) {
+    delete (updateData as any).budgetLimit;
+  }
 
   if (data.isPublic && !trip.shareSlug && !data.shareSlug) {
     updateData.shareSlug = generateShareSlug();
@@ -93,9 +119,18 @@ export const updateTrip = async (userId: string, tripId: string, data: any) => {
   const updatedTrip = await prisma.trip.update({
     where: { id: tripId },
     data: updateData,
+    include: {
+      _count: {
+        select: { stops: true }
+      }
+    }
   });
 
-  return updatedTrip;
+  return {
+    ...updatedTrip,
+    stopsCount: updatedTrip._count.stops,
+    _count: undefined
+  };
 };
 
 export const deleteTrip = async (userId: string, tripId: string) => {
@@ -110,10 +145,19 @@ export const deleteTrip = async (userId: string, tripId: string) => {
 export const getTripPublic = async (shareSlug: string) => {
   const trip = await prisma.trip.findUnique({
     where: { shareSlug, isPublic: true },
+    include: {
+      _count: {
+        select: { stops: true }
+      }
+    }
   });
 
   if (!trip) throw new AppError('Trip not found or not public', 404);
-  return trip;
+  return {
+    ...trip,
+    stopsCount: trip._count.stops,
+    _count: undefined
+  };
 };
 
 export const duplicateTrip = async (userId: string, tripId: string) => {
@@ -133,5 +177,5 @@ export const duplicateTrip = async (userId: string, tripId: string) => {
     },
   });
 
-  return newTrip;
+  return { ...newTrip, stopsCount: 0 };
 };
