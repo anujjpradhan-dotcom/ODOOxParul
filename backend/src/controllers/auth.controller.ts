@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import * as authService from '../services/auth.service';
-import { successResponse } from '../utils/response';
+import { successResponse, errorResponse } from '../utils/response';
 
 export const postSignup = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -43,7 +43,14 @@ export const postLogout = async (req: Request, res: Response, next: NextFunction
 
 export const getMe = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    return successResponse(res, req.user, 'Current user', 200);
+    if (!req.user || !('id' in req.user)) {
+      return errorResponse(res, 'Not authenticated', 401);
+    }
+    const user = await authService.getUserById((req.user as any).id);
+    if (!user) {
+      return errorResponse(res, 'User not found', 401);
+    }
+    return successResponse(res, user, 'Current user', 200);
   } catch (error) {
     next(error);
   }

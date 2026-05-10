@@ -1,38 +1,38 @@
 import { AppError } from '../middleware/error.middleware';
+import prisma from '../lib/prisma';
+import { ActivityCategory, Prisma } from '@prisma/client';
 import { getTripById } from './trip.service';
 
-export interface Activity {
-  id: string;
-  cityId: string;
-  name: string;
-  category: 'SIGHTSEEING' | 'FOOD' | 'ADVENTURE' | 'NIGHTLIFE' | 'CULTURE' | 'RELAXATION' | 'OTHER';
-  cost: number;
-  durationMinutes: number;
-}
-
-const MOCK_ACTIVITIES: Activity[] = [
-  { id: 'cuid_act1', cityId: 'cuid_tokyo', name: 'Tokyo Tower', category: 'SIGHTSEEING', cost: 20, durationMinutes: 120 },
-];
-
-const MOCK_TRIP_ACTIVITIES: any[] = [];
-
 export const searchActivities = async (filters: any) => {
-  let results = [...MOCK_ACTIVITIES];
+  const where: Prisma.ActivityWhereInput = {};
 
   if (filters.query) {
-    const q = filters.query.toLowerCase();
-    results = results.filter(a => a.name.toLowerCase().includes(q));
+    where.name = { contains: filters.query, mode: 'insensitive' };
   }
-  if (filters.cityId) results = results.filter(a => a.cityId === filters.cityId);
-  if (filters.category) results = results.filter(a => a.category === filters.category);
-  if (filters.minCost) results = results.filter(a => a.cost >= filters.minCost);
-  if (filters.maxCost) results = results.filter(a => a.cost <= filters.maxCost);
+  if (filters.cityId) where.cityId = filters.cityId;
+  if (filters.category) where.category = filters.category as ActivityCategory;
+  
+  if (filters.minCost) where.estimatedCost = { gte: Number(filters.minCost) };
+  if (filters.maxCost) {
+    const costFilter = (where.estimatedCost as any) || {};
+    where.estimatedCost = { ...costFilter, lte: Number(filters.maxCost) };
+  }
 
-  const total = results.length;
-  const skip = (filters.page - 1) * filters.limit;
-  const data = results.slice(skip, skip + filters.limit);
+  const page = Number(filters.page) || 1;
+  const limit = Number(filters.limit) || 10;
+  const skip = (page - 1) * limit;
 
-  return { data, total, page: filters.page, limit: filters.limit };
+  const [activities, total] = await Promise.all([
+    prisma.activity.findMany({
+      where,
+      skip,
+      take: limit,
+      orderBy: { isPopular: 'desc' },
+    }),
+    prisma.activity.count({ where }),
+  ]);
+
+  return { data: activities, total, page, limit };
 };
 
 export const getActivitiesByCity = async (cityId: string, filters: any) => {
@@ -42,45 +42,58 @@ export const getActivitiesByCity = async (cityId: string, filters: any) => {
 export const addActivityToStop = async (userId: string, tripId: string, stopId: string, data: any) => {
   await getTripById(userId, tripId); // Validate ownership
   
-  const tripStopsActivities = MOCK_TRIP_ACTIVITIES.filter(a => a.stopId === stopId);
-  const orderIndex = tripStopsActivities.length > 0 ? Math.max(...tripStopsActivities.map(a => a.orderIndex)) + 1 : 0;
+  const lastActivity = await prisma.tripActivity.findFirst({
+    where: { tripStopId: stopId },
+    orderBy: { orderIndex: 'desc' },
+  });
 
-  const tripActivity = {
-    ...data,
-    id: 'cuid_' + Math.random().toString(36).substring(7),
-    tripId,
-    stopId,
-    orderIndex,
-  };
+  const orderIndex = lastActivity ? lastActivity.orderIndex + 1 : 0;
 
-  MOCK_TRIP_ACTIVITIES.push(tripActivity);
+  const tripActivity = await prisma.tripActivity.create({
+    data: {
+      tripStopId: stopId,
+      activityId: data.activityId,
+      customCost: data.customCost,
+      notes: data.notes,
+      orderIndex,
+    },
+    include: {
+      activity: true,
+    },
+  });
+
   return tripActivity;
 };
 
 export const removeActivityFromStop = async (userId: string, tripId: string, stopId: string, tripActivityId: string) => {
   await getTripById(userId, tripId);
 
-  const index = MOCK_TRIP_ACTIVITIES.findIndex(a => a.id === tripActivityId && a.stopId === stopId);
-  if (index === -1) throw new AppError('Trip activity not found', 404);
+  const tripActivity = await prisma.tripActivity.findUnique({
+    where: { id: tripActivityId },
+  });
 
-  MOCK_TRIP_ACTIVITIES.splice(index, 1);
+  if (!tripActivity || tripActivity.tripStopId !== stopId) {
+    throw new AppError('Trip activity not found', 404);
+  }
+
+  await prisma.tripActivity.delete({ where: { id: tripActivityId } });
 };
 
 export const reorderActivities = async (userId: string, tripId: string, stopId: string, orderedIds: string[]) => {
   await getTripById(userId, tripId);
 
-  const stopActivities = MOCK_TRIP_ACTIVITIES.filter(a => a.stopId === stopId);
-  
-  for (const id of orderedIds) {
-    if (!stopActivities.find(a => a.id === id)) {
-      throw new AppError(`Trip Activity ID ${id} not found in this stop`, 400);
+  await prisma.$transaction(async (tx) => {
+    for (let i = 0; i < orderedIds.length; i++) {
+      await tx.tripActivity.update({
+        where: { id: orderedIds[i], tripStopId: stopId },
+        data: { orderIndex: i },
+      });
     }
-  }
-
-  orderedIds.forEach((id, index) => {
-    const act = stopActivities.find(a => a.id === id);
-    if (act) act.orderIndex = index;
   });
 
-  return stopActivities.sort((a, b) => a.orderIndex - b.orderIndex);
+  return prisma.tripActivity.findMany({
+    where: { tripStopId: stopId },
+    orderBy: { orderIndex: 'asc' },
+    include: { activity: true },
+  });
 };

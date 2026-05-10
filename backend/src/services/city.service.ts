@@ -1,60 +1,72 @@
 import { AppError } from '../middleware/error.middleware';
-
-export interface City {
-  id: string;
-  name: string;
-  country: string;
-  region: string;
-  costLevel: 'LOW' | 'MEDIUM' | 'HIGH';
-  popularityScore: number;
-  averageDailyCost: number;
-  imageUrl?: string;
-}
-
-const MOCK_CITIES: City[] = [
-  { id: 'cuid_tokyo', name: 'Tokyo', country: 'Japan', region: 'Asia', costLevel: 'HIGH', popularityScore: 95, averageDailyCost: 150 },
-  { id: 'cuid_bangkok', name: 'Bangkok', country: 'Thailand', region: 'Asia', costLevel: 'LOW', popularityScore: 92, averageDailyCost: 50 },
-  { id: 'cuid_paris', name: 'Paris', country: 'France', region: 'Europe', costLevel: 'HIGH', popularityScore: 98, averageDailyCost: 200 },
-];
+import prisma from '../lib/prisma';
+import { CostLevel, Prisma } from '@prisma/client';
 
 export const searchCities = async (filters: any) => {
-  let results = [...MOCK_CITIES];
+  const where: Prisma.CityWhereInput = {};
 
   if (filters.query) {
-    const q = filters.query.toLowerCase();
-    results = results.filter(c => c.name.toLowerCase().includes(q) || c.country.toLowerCase().includes(q));
+    where.OR = [
+      { name: { contains: filters.query, mode: 'insensitive' } },
+      { country: { contains: filters.query, mode: 'insensitive' } },
+    ];
   }
-  if (filters.country) results = results.filter(c => c.country === filters.country);
-  if (filters.region) results = results.filter(c => c.region === filters.region);
-  if (filters.costLevel) results = results.filter(c => c.costLevel === filters.costLevel);
+  if (filters.country) where.country = filters.country;
+  if (filters.region) where.region = filters.region;
+  if (filters.costLevel) where.costIndex = filters.costLevel as CostLevel;
 
+  const page = Number(filters.page) || 1;
+  const limit = Number(filters.limit) || 10;
+  const skip = (page - 1) * limit;
+
+  let orderBy: Prisma.CityOrderByWithRelationInput = { popularityScore: 'desc' };
+  
   if (filters.sortBy === 'name') {
-    results.sort((a, b) => a.name.localeCompare(b.name));
+    orderBy = { name: 'asc' };
   } else if (filters.sortBy === 'cost') {
-    results.sort((a, b) => a.averageDailyCost - b.averageDailyCost);
-  } else {
-    results.sort((a, b) => b.popularityScore - a.popularityScore);
+    orderBy = { averageDailyCost: 'asc' };
   }
 
-  const total = results.length;
-  const skip = (filters.page - 1) * filters.limit;
-  const data = results.slice(skip, skip + filters.limit);
+  const [cities, total] = await Promise.all([
+    prisma.city.findMany({
+      where,
+      skip,
+      take: limit,
+      orderBy,
+    }),
+    prisma.city.count({ where }),
+  ]);
 
-  return { data, total, page: filters.page, limit: filters.limit };
+  return { data: cities, total, page, limit };
 };
 
 export const getCityDetails = async (cityId: string) => {
-  const city = MOCK_CITIES.find(c => c.id === cityId);
+  const city = await prisma.city.findUnique({
+    where: { id: cityId },
+    include: {
+      activities: {
+        take: 5,
+        orderBy: { isPopular: 'desc' },
+      },
+    },
+  });
+
   if (!city) throw new AppError('City not found', 404);
-  return { ...city, activities: [], stats: {} };
+  return city;
 };
 
 export const getPopularCities = async (limit: number) => {
-  return [...MOCK_CITIES].sort((a, b) => b.popularityScore - a.popularityScore).slice(0, limit);
+  return prisma.city.findMany({
+    take: limit || 10,
+    orderBy: { popularityScore: 'desc' },
+  });
 };
 
 export const getRecommendedCities = async (userId: string) => {
-  // Recommendation logic (rule-based, no AI)
-  // E.g., check user's visited regions and cost levels and find matching cities not yet visited
-  return [...MOCK_CITIES].sort((a, b) => b.popularityScore - a.popularityScore).slice(0, 5);
+  // Recommendation logic (rule-based)
+  // For now, return top 5 popular cities
+  return prisma.city.findMany({
+    take: 5,
+    orderBy: { popularityScore: 'desc' },
+  });
 };

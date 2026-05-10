@@ -1,102 +1,130 @@
 import { AppError } from '../middleware/error.middleware';
+import prisma from '../lib/prisma';
 import { getTripById } from './trip.service';
-
-export interface TripStop {
-  id: string;
-  tripId: string;
-  cityId: string;
-  arrivalDate: string;
-  departureDate: string;
-  notes?: string;
-  orderIndex: number;
-}
-
-const MOCK_DB: { stops: TripStop[] } = { stops: [] };
 
 export const addStop = async (userId: string, tripId: string, data: any) => {
   const trip = await getTripById(userId, tripId);
   
-  if (new Date(data.arrivalDate) < new Date(trip.startDate) || new Date(data.departureDate) > new Date(trip.endDate)) {
+  const arrivalDate = new Date(data.arrivalDate);
+  const departureDate = new Date(data.departureDate);
+
+  if (arrivalDate < trip.startDate || departureDate > trip.endDate) {
     throw new AppError('Stop dates must fall within trip start and end dates', 400);
   }
 
-  const tripStops = MOCK_DB.stops.filter(s => s.tripId === tripId);
-  const orderIndex = tripStops.length > 0 ? Math.max(...tripStops.map(s => s.orderIndex)) + 1 : 0;
+  const lastStop = await prisma.tripStop.findFirst({
+    where: { tripId },
+    orderBy: { orderIndex: 'desc' },
+  });
 
-  const stop: TripStop = {
-    ...data,
-    id: 'cuid_' + Math.random().toString(36).substring(7),
-    tripId,
-    orderIndex,
-  };
+  const orderIndex = lastStop ? lastStop.orderIndex + 1 : 0;
 
-  MOCK_DB.stops.push(stop);
+  const stop = await prisma.tripStop.create({
+    data: {
+      tripId,
+      cityId: data.cityId,
+      arrivalDate,
+      departureDate,
+      notes: data.notes,
+      orderIndex,
+    },
+    include: {
+      city: true,
+    },
+  });
+
   return stop;
 };
 
 export const updateStop = async (userId: string, tripId: string, stopId: string, data: any) => {
   const trip = await getTripById(userId, tripId);
   
-  const stopIndex = MOCK_DB.stops.findIndex(s => s.id === stopId && s.tripId === tripId);
-  if (stopIndex === -1) throw new AppError('Stop not found', 404);
+  const stop = await prisma.tripStop.findUnique({ where: { id: stopId } });
+  if (!stop || stop.tripId !== tripId) throw new AppError('Stop not found', 404);
 
-  const updatedStop = { ...MOCK_DB.stops[stopIndex], ...data };
+  const arrivalDate = data.arrivalDate ? new Date(data.arrivalDate) : stop.arrivalDate;
+  const departureDate = data.departureDate ? new Date(data.departureDate) : stop.departureDate;
 
-  if (updatedStop.arrivalDate && updatedStop.departureDate) {
-    if (new Date(updatedStop.arrivalDate) < new Date(trip.startDate) || new Date(updatedStop.departureDate) > new Date(trip.endDate)) {
-      throw new AppError('Stop dates must fall within trip start and end dates', 400);
-    }
+  if (arrivalDate < trip.startDate || departureDate > trip.endDate) {
+    throw new AppError('Stop dates must fall within trip start and end dates', 400);
   }
 
-  MOCK_DB.stops[stopIndex] = updatedStop;
+  const updatedStop = await prisma.tripStop.update({
+    where: { id: stopId },
+    data: {
+      ...data,
+      arrivalDate,
+      departureDate,
+    },
+    include: {
+      city: true,
+    },
+  });
+
   return updatedStop;
 };
 
 export const removeStop = async (userId: string, tripId: string, stopId: string) => {
   await getTripById(userId, tripId); // Validate ownership
 
-  const stopIndex = MOCK_DB.stops.findIndex(s => s.id === stopId && s.tripId === tripId);
-  if (stopIndex === -1) throw new AppError('Stop not found', 404);
+  const stop = await prisma.tripStop.findUnique({ where: { id: stopId } });
+  if (!stop || stop.tripId !== tripId) throw new AppError('Stop not found', 404);
 
-  MOCK_DB.stops.splice(stopIndex, 1);
+  await prisma.$transaction(async (tx) => {
+    await tx.tripStop.delete({ where: { id: stopId } });
 
-  // Reindex remaining stops
-  const remainingStops = MOCK_DB.stops.filter(s => s.tripId === tripId).sort((a, b) => a.orderIndex - b.orderIndex);
-  remainingStops.forEach((stop, index) => {
-    stop.orderIndex = index;
+    // Reindex remaining stops
+    const remainingStops = await tx.tripStop.findMany({
+      where: { tripId },
+      orderBy: { orderIndex: 'asc' },
+    });
+
+    for (let i = 0; i < remainingStops.length; i++) {
+      await tx.tripStop.update({
+        where: { id: remainingStops[i].id },
+        data: { orderIndex: i },
+      });
+    }
   });
 };
 
 export const reorderStops = async (userId: string, tripId: string, orderedIds: string[]) => {
   await getTripById(userId, tripId); // Validate ownership
 
-  const tripStops = MOCK_DB.stops.filter(s => s.tripId === tripId);
-  
-  // Validate all ids exist
-  for (const id of orderedIds) {
-    if (!tripStops.find(s => s.id === id)) {
-      throw new AppError(`Stop ID ${id} not found in this trip`, 400);
+  await prisma.$transaction(async (tx) => {
+    for (let i = 0; i < orderedIds.length; i++) {
+      await tx.tripStop.update({
+        where: { id: orderedIds[i], tripId },
+        data: { orderIndex: i },
+      });
     }
-  }
-
-  // Update orderIndex
-  orderedIds.forEach((id, index) => {
-    const stop = tripStops.find(s => s.id === id);
-    if (stop) stop.orderIndex = index;
   });
 
-  return tripStops.sort((a, b) => a.orderIndex - b.orderIndex);
+  return prisma.tripStop.findMany({
+    where: { tripId },
+    orderBy: { orderIndex: 'asc' },
+    include: { city: true },
+  });
 };
 
 export const getStopDetails = async (userId: string, tripId: string, stopId: string) => {
   await getTripById(userId, tripId); // Validate ownership/access
 
-  const stop = MOCK_DB.stops.find(s => s.id === stopId && s.tripId === tripId);
+  const stop = await prisma.tripStop.findUnique({
+    where: { id: stopId, tripId },
+    include: {
+      city: true,
+      activities: {
+        include: { activity: true },
+        orderBy: { orderIndex: 'asc' },
+      },
+      expenses: {
+        orderBy: { date: 'desc' },
+      },
+    },
+  });
+
   if (!stop) throw new AppError('Stop not found', 404);
 
-  return {
-    ...stop,
-    activities: [], // To be populated
-    expenses: [],   // To be populated
-  };
+  return stop;
 };

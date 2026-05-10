@@ -2,8 +2,9 @@ import { Request, Response, NextFunction } from 'express';
 import { verifyAccessToken } from '../utils/jwt';
 import { errorResponse } from '../utils/response';
 import { JsonWebTokenError, TokenExpiredError } from 'jsonwebtoken';
+import prisma from '../lib/prisma';
 
-export const authenticate = (req: Request, res: Response, next: NextFunction) => {
+export const authenticate = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader?.startsWith('Bearer ')) {
@@ -12,7 +13,26 @@ export const authenticate = (req: Request, res: Response, next: NextFunction) =>
 
     const token = authHeader.split(' ')[1];
     const decoded = verifyAccessToken(token);
-    req.user = decoded;
+    
+    // Safety check: ensure user still exists and is active
+    const user = await prisma.user.findUnique({
+      where: { id: decoded.id },
+      select: { isActive: true, isAdmin: true }
+    });
+
+    if (!user) {
+      return errorResponse(res, 'User no longer exists', 401);
+    }
+
+    if (!user.isActive) {
+      return errorResponse(res, 'Account is deactivated', 403);
+    }
+
+    req.user = {
+      ...decoded,
+      isAdmin: user.isAdmin // Ensure admin status is fresh
+    };
+    
     next();
   } catch (error) {
     if (error instanceof TokenExpiredError) {
@@ -25,13 +45,24 @@ export const authenticate = (req: Request, res: Response, next: NextFunction) =>
   }
 };
 
-export const optionalAuth = (req: Request, res: Response, next: NextFunction) => {
+export const optionalAuth = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const authHeader = req.headers.authorization;
     if (authHeader?.startsWith('Bearer ')) {
       const token = authHeader.split(' ')[1];
       const decoded = verifyAccessToken(token);
-      req.user = decoded;
+      
+      const user = await prisma.user.findUnique({
+        where: { id: decoded.id },
+        select: { isActive: true, isAdmin: true }
+      });
+
+      if (user && user.isActive) {
+        req.user = {
+          ...decoded,
+          isAdmin: user.isAdmin
+        };
+      }
     }
     next();
   } catch (error) {

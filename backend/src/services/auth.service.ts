@@ -1,9 +1,7 @@
 import bcrypt from 'bcryptjs';
-import { PrismaClient } from '@prisma/client';
+import prisma from '../lib/prisma';
 import { generateAccessToken, generateRefreshToken } from '../utils/jwt';
 import { AppError } from '../middleware/error.middleware';
-
-const prisma = new PrismaClient();
 
 export const signup = async (data: any) => {
   // Check if email already exists
@@ -102,4 +100,20 @@ export const refreshTokens = async (token: string) => {
 
 export const logout = async (refreshToken: string) => {
   await prisma.refreshToken.deleteMany({ where: { token: refreshToken } });
+};
+
+export const getUserById = async (id: string) => {
+  const user = await prisma.user.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      email: true,
+      firstName: true,
+      lastName: true,
+      avatar: true,
+      isAdmin: true,
+      isActive: true,
+    },
+  });
+  return user;
 };
