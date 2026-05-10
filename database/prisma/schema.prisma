@@ -116,3 +116,92 @@ model TripStop {
   @@index([tripId, orderIndex])
 }
 
+// ==========================================
+// City & Activity Reference Data Models
+// ==========================================
+
+enum CostLevel {
+  BUDGET
+  MODERATE
+  EXPENSIVE
+  LUXURY
+}
+
+enum ActivityCategory {
+  SIGHTSEEING
+  FOOD_TOUR
+  ADVENTURE
+  CULTURE
+  SHOPPING
+  NIGHTLIFE
+  NATURE
+  RELAXATION
+  TRANSPORTATION
+  OTHER
+}
+
+/// City catalog reference data
+model City {
+  id               String    @id @default(cuid())
+  name             String
+  country          String
+  region           String?
+  description      String?
+  imageUrl         String?
+  costIndex        CostLevel
+  popularityScore  Int       @default(0)
+  latitude         Float?
+  longitude        Float?
+  averageDailyCost Float?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  activities        Activity[]
+  tripStops         TripStop[]
+  savedDestinations SavedDestination[]
+
+  @@unique([name, country])
+  @@index([country])
+  @@index([name, country])
+}
+
+/// Activity catalog reference data
+model Activity {
+  id                       String           @id @default(cuid())
+  cityId                   String
+  name                     String
+  description              String?
+  imageUrl                 String?
+  category                 ActivityCategory
+  estimatedCost            Float
+  estimatedDurationMinutes Int
+  isPopular                Boolean          @default(false)
+  createdAt                DateTime         @default(now())
+  updatedAt                DateTime         @updatedAt
+
+  city           City           @relation(fields: [cityId], references: [id], onDelete: Cascade)
+  tripActivities TripActivity[]
+
+  @@index([cityId, category])
+}
+
+/// TripActivity representing scheduled activities at a trip stop
+model TripActivity {
+  id             String   @id @default(cuid())
+  tripStopId     String
+  activityId     String
+  scheduledDate  DateTime?
+  scheduledTime  String?
+  customCost     Float?
+  notes          String?
+  orderIndex     Int      @default(0)
+  isCompleted    Boolean  @default(false)
+  createdAt      DateTime @default(now())
+
+  tripStop TripStop @relation(fields: [tripStopId], references: [id], onDelete: Cascade)
+  activity Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+
+  @@unique([tripStopId, activityId])
+  @@index([tripStopId, orderIndex])
+}
+
